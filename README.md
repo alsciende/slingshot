@@ -26,5 +26,11 @@ You can execute this command:
 ```
 /bin/console slingshot /opt/data/books PUT https://api.library.org/books/[id]
 ```
-
 Which will do a PUT request to https://api.library.org/books/1 with the file content as its JSON body.
+
+Or you can execute this command:
+```
+/bin/console slingshot /opt/data/books POST https://api.library.org/books
+```
+Which will do a POST request to https://api.library.org/books with the file content as its JSON body.
+
