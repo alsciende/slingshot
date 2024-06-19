@@ -13,6 +13,18 @@ That variable interpolation can also handle multi-dimensional arrays, like '[add
 
 ## Example
 
+If the file /opt/data/books/book-1.json holds this content:
+```json
+{
+  "id": 1,
+  "title": "Les Misérables",
+  "author": "Victor Hugo"
+}
+```
+
+You can execute this command:
 ```
 /bin/console slingshot /opt/data/books PUT https://api.library.org/books/[id]
 ```
+
+Which will do a PUT request to https://api.library.org/books/1 with the file content as its JSON body.
