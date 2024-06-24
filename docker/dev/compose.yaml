@@ -1,0 +1,6 @@
+name: slingshot
+services:
+    php:
+        build: ./php/
+        volumes:
+            - ../../:/var/www/html
