@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Service;
+namespace App;
 
 use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;

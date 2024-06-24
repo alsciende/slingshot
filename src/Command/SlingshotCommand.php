@@ -2,8 +2,9 @@
 
 namespace App\Command;
 
-use App\Service\JsonFileReader;
-use App\Service\UrlBuilder;
+use App\Service\JsonFinder;
+use App\Service\JsonReader;
+use App\UrlBuilder;
 
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
@@ -32,7 +33,8 @@ class SlingshotCommand extends Command implements LoggerAwareInterface
         Request::METHOD_PATCH
     ];
 
-    public function __construct(private JsonFileReader $jsonFileReader,
+    public function __construct(private JsonFinder $jsonFinder,
+                                private JsonReader $jsonReader,
                                 private HttpClientInterface $client)
     {   
         parent::__construct();
@@ -57,12 +59,13 @@ class SlingshotCommand extends Command implements LoggerAwareInterface
 
         $urlBuilder = new UrlBuilder($apiUrl);
 
-        $filesContent = $this->jsonFileReader->read($pathToJsonDocument);
+        $filePaths = $this->jsonFinder->read($pathToJsonDocument);
 
-        $this->logger->debug("Here are the JSON contents", $filesContent);
+        $this->logger->debug("Here are the JSON paths", $filePaths);
         
-        foreach ($filesContent as $jsonContent) {
-            $response = $this->makeRequest($jsonContent, $httpMethod, $urlBuilder);   
+        foreach ($filePaths as $filePath) {
+            $fileContent = $this->jsonReader->read($filePath);
+            $response = $this->makeRequest($fileContent, $httpMethod, $urlBuilder);   
         }
         
         $io->success(
