@@ -23,16 +23,11 @@ class UrlBuilder
 
     public function build(array $jsonContent): string
     {
-        $finalPath = [];
-
-        // var_dump($pathElements);
         foreach ($this->pathElements as $elem)
         {
             if ($this->isSquareBraced($elem)) {
-                // echo $elem . " is braced!";
                 $finalPath[] = $this->propertyAccessor->getValue($jsonContent, $elem);
             } else {
-                // echo $elem . " isn't braced.";
                 $finalPath[] = $elem;
             }
         }

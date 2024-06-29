@@ -27,7 +27,7 @@ class SlingshotCommand extends Command implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
-    const outgoingMethods = [
+    const payloadMethods = [
         Request::METHOD_POST,
         Request::METHOD_PUT,
         Request::METHOD_PATCH
@@ -64,7 +64,7 @@ class SlingshotCommand extends Command implements LoggerAwareInterface
         $this->logger->debug("Here are the JSON paths", $filePaths);
         
         foreach ($filePaths as $filePath) {
-            $fileContent = $this->jsonReader->read($filePath);
+            $fileContent = $this->jsonReader->find($filePath);
             $response = $this->makeRequest($fileContent, $httpMethod, $urlBuilder);   
         }
         
@@ -81,15 +81,10 @@ class SlingshotCommand extends Command implements LoggerAwareInterface
     {
         $apiUrl = $urlBuilder->build($jsonContent);
 
-        if (in_array($httpMethod, self::outgoingMethods)) {
-            $response = $this->client->request(
-                $httpMethod, $apiUrl,
-                [
-                    'json' => $jsonContent
-                ]);
-        } else {
-            $response = $this->client->request($httpMethod, $apiUrl);
+        if (in_array($httpMethod, self::payloadMethods)) {
+            $options = ['json' => $jsonContent];
         }
+        $response = $this->client->request($httpMethod, $apiUrl, $options);
 
         $this->logger->debug('File processed', $response->toArray());
 

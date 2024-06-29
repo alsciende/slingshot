@@ -11,20 +11,13 @@ class JsonReader
     {
     }    
 
-    public function readFile(string $path): array
+    public function find(string $path): array
     {
-        $jsonContent = json_decode(file_get_contents($path), true);
+        $fileContent = json_decode(file_get_contents($path), true);
         
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new \RuntimeException("Error decoding JSON from file: " . __DIR__ . DIRECTORY_SEPARATOR . $path);
         }
-
-        return $jsonContent;
-    }
-
-    public function read(string $path): array
-    {
-        $fileContent = $this->readFile($path);
 
         return $fileContent;
     }
