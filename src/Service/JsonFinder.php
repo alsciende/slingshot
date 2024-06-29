@@ -25,7 +25,7 @@ class JsonFinder
         return $paths;
     }
 
-    public function read(string $path): array
+    public function find(string $path): array
     {
         $fileContents = [];
 

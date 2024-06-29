@@ -59,12 +59,12 @@ class SlingshotCommand extends Command implements LoggerAwareInterface
 
         $urlBuilder = new UrlBuilder($apiUrl);
 
-        $filePaths = $this->jsonFinder->read($pathToJsonDocument);
+        $filePaths = $this->jsonFinder->find($pathToJsonDocument);
 
         $this->logger->debug("Here are the JSON paths", $filePaths);
         
         foreach ($filePaths as $filePath) {
-            $fileContent = $this->jsonReader->find($filePath);
+            $fileContent = $this->jsonReader->read($filePath);
             $response = $this->makeRequest($fileContent, $httpMethod, $urlBuilder);   
         }
         

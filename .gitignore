@@ -8,4 +8,6 @@
 /var/
 /vendor/
 /opt/
+/csvParser.php
+/sovereignCards.csv
 ###< symfony/framework-bundle ###

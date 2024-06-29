@@ -11,7 +11,7 @@ class JsonReader
     {
     }    
 
-    public function find(string $path): array
+    public function read(string $path): array
     {
         $fileContent = json_decode(file_get_contents($path), true);
         
