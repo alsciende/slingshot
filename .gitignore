@@ -7,4 +7,5 @@
 /public/bundles/
 /var/
 /vendor/
+/opt/
 ###< symfony/framework-bundle ###
