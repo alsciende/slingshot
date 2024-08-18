@@ -1,16 +1,23 @@
+compose := docker-compose -f docker/dev/compose.yaml
+php := $(compose) exec php
+
 build:
-	docker-compose -f docker/dev/compose.yaml build
+	$(compose) build
 
 up:
 	docker image pull php:8.3-alpine
-	docker-compose -f docker/dev/compose.yaml up -d
+	$(compose) up -d
+
+down:
+	$(compose) down
+
+reload: up down
 
 clean:
 	rm -rf vendor
 
 install:
-	docker-compose -f docker/dev/compose.yaml exec php composer install
+	$(php) composer install
 
 shell:
-	docker-compose -f docker/dev/compose.yaml exec php bash
-	
+	$(php) bash
