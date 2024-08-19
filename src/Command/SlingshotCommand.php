@@ -46,8 +46,9 @@ class SlingshotCommand extends Command implements LoggerAwareInterface
         $this
             ->addArgument('path_to_json_document', InputArgument::REQUIRED, 'Path to the json document (ex: /opt/data/books/book-1.json)')
             ->addArgument('http_method', InputArgument::REQUIRED, 'HTTP method (ex: [PUT, POST])')
-            ->addArgument('url_of_api', InputArgument::REQUIRED, 'api URL (ex: https://api.library.org/books/[id])')
-            ->addOption('dry-run', false, InputOption::VALUE_NONE, 'simuates the command instead of running it.')
+            ->addArgument('url_of_api', InputArgument::REQUIRED, 'Api URL (ex: https://api.library.org/books/[id])')
+            ->addOption('dry-run', false, InputOption::VALUE_NONE, 'Simulates the command instead of running it')
+            ->addOption('clean-after', false, InputOption::VALUE_NONE, 'Delete the files after reading them')
         ;
     }
 
@@ -94,17 +95,35 @@ class SlingshotCommand extends Command implements LoggerAwareInterface
         if ($input->getOption('dry-run') !== true) {
             foreach ($filePaths as $filePath) {
                 $fileContent = $this->jsonReader->read($filePath);
+                
+                $io->text(
+                    sprintf(
+                        '%s %s %s %s',
+                        strtoupper($httpMethod) === 'PUT' ? 'Sending' : 'Getting',
+                        "$filePath",
+                        strtoupper($httpMethod) === 'PUT' ? 'to' : 'in',
+                        strtoupper($httpMethod) === 'PUT' ? $urlBuilder->build($fileContent) : "$pathToJsonDocument",
+                    )
+                );
+                
                 $response = $this->makeRequest($fileContent, $httpMethod, $urlBuilder);
+                
+                if ($input->getOption('clean-after') && !unlink($filePath)) {
+                    $io->error("Failed to delete file '$filePath'");
+                }
             }
         }
 
         $io->success("Call successful!");
-        
+
         return Command::SUCCESS;
     }
 
-    protected function makeRequest(array $jsonContent, string $httpMethod, UrlBuilder $urlBuilder): ResponseInterface
-    {
+    protected function makeRequest(
+        array $jsonContent,
+        string $httpMethod,
+        UrlBuilder $urlBuilder
+    ): ResponseInterface {
         $apiUrl = $urlBuilder->build($jsonContent);
 
         if (in_array($httpMethod, self::payloadMethods)) {

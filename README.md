@@ -24,13 +24,17 @@ If the file /opt/data/cards/absolution-sphere.json holds this content:
 
 You can execute this command:
 ```
-/bin/console slingshot /opt/data/cards PUT http://host.docker.internal:8080/cards/[id]
+/bin/console slingshot opt/data/cards PUT http://host.docker.internal:8080/cards/[id]
 ```
 Which will do a PUT request to http://host.docker.internal:8080/cards/1 with the file content as its JSON body.
 
 Or you can execute this command:
 ```
-/bin/console slingshot /opt/data/cards POST http://host.docker.internal:8080/cards/
+/bin/console slingshot opt/data/cards POST http://host.docker.internal:8080/cards/
 ```
 Which will do a POST request to http://host.docker.internal:8080/cards/ with the file content as its JSON body.
 
+# Options
+
+- dry-run             Stops before making the requests
+- clean-after         Deletes used files
