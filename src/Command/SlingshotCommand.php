@@ -15,6 +15,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Console\Helper\Table;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 use Symfony\Component\HttpFoundation\Request;
@@ -33,6 +34,16 @@ class SlingshotCommand extends Command implements LoggerAwareInterface
         Request::METHOD_PUT,
         Request::METHOD_PATCH
     ];
+    
+    const style = [
+        'jsonPath'      => "\033[32m",          // Green
+        'apiUrl'        => "\033[33m",          // Yellow
+        'method'        => "\033[35m",          // Magenta
+        'badCode'       => "\033[38;5;214m",    // Orange
+        'okCode'        => "\033[34m",          // Blue
+        'sideNote'      => "\033[90m",          // Grey
+        'reset'         => "\033[0m",           // White
+    ];
 
     public function __construct(private JsonFinder $jsonFinder,
                                 private JsonReader $jsonReader,
@@ -49,90 +60,137 @@ class SlingshotCommand extends Command implements LoggerAwareInterface
             ->addArgument('url_of_api', InputArgument::REQUIRED, 'Api URL (ex: https://api.library.org/books/[id])')
             ->addOption('dry-run', false, InputOption::VALUE_NONE, 'Simulates the command instead of running it')
             ->addOption('clean-after', false, InputOption::VALUE_NONE, 'Delete the files after reading them')
+            ->addOption('dump-paths', false, InputOption::VALUE_NONE, 'Displays all the paths before sending them.')
         ;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-
         $io->title("Slingshot Command");
 
+        // Get the files location
         $pathToJsonDocument = $input->getArgument('path_to_json_document');
+        
+        // Get the HTTP Method
         $httpMethod = $input->getArgument('http_method');
+        
+        // Handle invalid methods
+        if (!in_array($httpMethod, self::payloadMethods)) {
+            $io->error("$httpMethod : method not supported");
+            return Command::INVALID;
+        }
+        
+        // Get the API url and instanciate its Builder
         $apiUrl = $input->getArgument('url_of_api');
-
         $urlBuilder = new UrlBuilder($apiUrl);
 
+        // Logging path detection section
         $io->section(
             sprintf(
-                "Getting Json Documents %s %s...",
-                strtoupper($httpMethod) === 'PUT' ? 'in' : 'from',
-                strtoupper($httpMethod) === 'PUT' ? "$pathToJsonDocument" : "$apiUrl",
+                "[%s] JSON %s: %s",
+                strtoupper($httpMethod),
+                is_dir($pathToJsonDocument) ? 'Directory' : 'File',
+                $pathToJsonDocument,
+                $apiUrl,
             )
         );
 
+        // Find all the json documents in case the path is a directory
         $filePaths = $this->jsonFinder->find($pathToJsonDocument);
 
-        foreach ($filePaths as $filePath) {
-            $io->text(["-> $filePath"]);
+        // Print every path found in the provided directory if dump-paths is enabled
+        if ($input->getOption('dump-paths')) {
+            foreach ($filePaths as $filePath) {
+                $io->text(["-> $filePath"]);
+            }
+            $io->newline();
         }
-        $io->newline();
-        $io->text(sprintf("(%s elements)", count($filePaths)));
-
-        $this->logger->debug("Found the following JSON paths :", $filePaths);
+        // Print the total count of elements.
+        $io->text(sprintf("%s elements found", count($filePaths)));
         
+        // Logging request section
         $io->section(
             sprintf(
-                '%s%s Json Documents %s %s',
-                $input->getOption('dry-run') === true ? '(not actually) ' : '',
-                strtoupper($httpMethod) === 'PUT' ? 'Putting' : 'Getting',
-                strtoupper($httpMethod) === 'PUT' ? 'to' : 'in',
-                strtoupper($httpMethod) === 'PUT' ? "$apiUrl" : "$pathToJsonDocument",
+                '%s[%s] API template: %s',
+                $input->getOption('dry-run') === true ? '(dry-run) ' : '',
+                strtoupper($httpMethod),
+                $apiUrl,
             )
         );
 
-        if ($input->getOption('dry-run') !== true) {
-            foreach ($filePaths as $filePath) {
-                $fileContent = $this->jsonReader->read($filePath);
-                
-                $io->text(
-                    sprintf(
-                        '%s %s %s %s',
-                        strtoupper($httpMethod) === 'PUT' ? 'Sending' : 'Getting',
-                        "$filePath",
-                        strtoupper($httpMethod) === 'PUT' ? 'to' : 'in',
-                        strtoupper($httpMethod) === 'PUT' ? $urlBuilder->build($fileContent) : "$pathToJsonDocument",
-                    )
-                );
-                
-                $response = $this->makeRequest($fileContent, $httpMethod, $urlBuilder);
-                
-                if ($input->getOption('clean-after') && !unlink($filePath)) {
-                    $io->error("Failed to delete file '$filePath'");
-                }
+        // Calculate the largest path for the padding later
+        $maxFilePathLength = max(array_map('strlen', $filePaths));
+
+        // Iterate through every file path and giving it an index
+        foreach ($filePaths as $i => $filePath) {
+            // Read the content of the current file and build the actual Api path with its fields
+            $fileContent = $this->jsonReader->read($filePath);
+            $apiUrl = $urlBuilder->build($fileContent);
+
+            // Make the request and store its response, unless dry-mode is activated
+            $response = '<dry-run>';
+            if ($input->getOption('dry-run') !== true) {
+                $response = $this->makeOutgoingRequest($fileContent, $httpMethod, $apiUrl);
+            }
+            // Check if the request was succesful
+            $codeColor = $response === '<dry_run>' ? 'sideNote' : ($response > 399 ? 'badCode' : 'okCode'); 
+
+            // Log each iteration
+            $paddedIndex = str_pad($i, strlen(count($filePaths)) + 1);
+            $pathPadding = $maxFilePathLength - strlen($filePath);
+            $paddedPath = $filePath.str_repeat(' ', $pathPadding);
+            $paddedApi = $apiUrl.str_repeat(' ', $pathPadding);
+            $io->text(
+                sprintf(
+                    "%s| %s  ==>  [%s] %s  (code %s)",
+                    self::style['sideNote'].    '#'.$paddedIndex    .self::style['reset'],
+                    self::style['jsonPath'].    $paddedPath         .self::style['reset'],
+                    self::style['method'].      $httpMethod         .self::style['reset'],
+                    self::style['apiUrl'].      $paddedApi          .self::style['reset'],
+                    self::style[$codeColor].    $response           .self::style['reset'],
+                )
+            );
+
+            // Delete the current file when clean-after is activated
+            if ($input->getOption('clean-after') && !unlink($filePath)) {
+                $io->error("Failed to delete file '$filePath'");
             }
         }
 
+        // Log and return success
         $io->success("Call successful!");
-
         return Command::SUCCESS;
     }
 
-    protected function makeRequest(
+    protected function makeOutgoingRequest(
         array $jsonContent,
         string $httpMethod,
-        UrlBuilder $urlBuilder
-    ): ResponseInterface {
-        $apiUrl = $urlBuilder->build($jsonContent);
+        string $apiUrl,
+    ): int {
 
-        if (in_array($httpMethod, self::payloadMethods)) {
-            $options = ['json' => $jsonContent];
+        // Prepare the request options
+        $options = ['json' => $jsonContent];
+    
+        try {
+            // Make the HTTP request
+            $response = $this->client->request($httpMethod, $apiUrl, $options);
+        } catch (\Symfony\Contracts\HttpClient\Exception\HttpExceptionInterface $e) {
+            // Handle client/server errors (4xx and 5xx)
+            $this->logger->error('HTTP request failed', [
+                'url' => $apiUrl,
+                'method' => $httpMethod,
+                'status_code' => $e->getResponse()->getStatusCode(),
+                'response_content' => $e->getResponse()->getContent(false),
+            ]);
+        } catch (\Exception $e) {
+            // Handle any other kind of exceptions
+            $this->logger->critical('An unexpected error occurred', [
+                'error' => $e->getMessage(),
+            ]);
         }
-        $response = $this->client->request($httpMethod, $apiUrl, $options);
-
-        $this->logger->debug('File processed', $response->toArray());
-
-        return $response;
+        // Log the successful response
+        return $response->getStatusCode();
     }
+    
 }
