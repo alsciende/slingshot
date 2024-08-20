@@ -4,3 +4,9 @@ services:
         build: ./php/
         volumes:
             - ../../:/var/www/html
+        networks:
+            - sovereigndb_default
+
+networks:
+    sovereigndb_default:
+        external: true

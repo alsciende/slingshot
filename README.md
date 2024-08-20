@@ -13,24 +13,28 @@ That variable interpolation can also handle multi-dimensional arrays, like '[add
 
 ## Example
 
-If the file /opt/data/books/book-1.json holds this content:
+If the file /SovereignData/cards/absolution-sphere.json holds this content:
 ```json
 {
-  "id": 1,
-  "title": "Les Misérables",
-  "author": "Victor Hugo"
+  "id": "absolution-sphere",
+  "title": "Absolution Sphere",
+  "faction": "neogenesis-church"
 }
 ```
 
 You can execute this command:
 ```
-/bin/console slingshot /opt/data/books PUT https://api.library.org/books/[id]
+/bin/console slingshot /SovereignData/cards PUT http://host.docker.internal:8080/cards/[id]
 ```
-Which will do a PUT request to https://api.library.org/books/1 with the file content as its JSON body.
+Which will do a PUT request to http://host.docker.internal:8080/cards/1 with the file content as its JSON body.
 
 Or you can execute this command:
 ```
-/bin/console slingshot /opt/data/books POST https://api.library.org/books
+/bin/console slingshot /SovereignData/cards POST http://host.docker.internal:8080/cards/
 ```
-Which will do a POST request to https://api.library.org/books with the file content as its JSON body.
+Which will do a POST request to http://host.docker.internal:8080/cards/ with the file content as its JSON body.
 
+# ions
+
+- dry-run             Stops before making the requests
+- clean-after         Deletes used files
