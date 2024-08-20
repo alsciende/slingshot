@@ -39,7 +39,7 @@ class SlingshotCommand extends Command implements LoggerAwareInterface
         'jsonPath'      => "\033[32m",          // Green
         'apiUrl'        => "\033[33m",          // Yellow
         'method'        => "\033[35m",          // Magenta
-        'badCode'       => "\033[38;5;214m",    // Orange
+        'badCode'       => "\033[31m",          // Red
         'okCode'        => "\033[34m",          // Blue
         'sideNote'      => "\033[90m",          // Grey
         'reset'         => "\033[0m",           // White
